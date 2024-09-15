@@ -12,7 +12,6 @@ import React, {
 import dayjs from 'dayjs';
 import { Integrations } from '@gitroom/frontend/components/launches/calendar.context';
 import clsx from 'clsx';
-import { commands } from '@uiw/react-md-editor';
 import { usePreventWindowUnload } from '@gitroom/react/helpers/use.prevent.window.unload';
 import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import { useModals } from '@mantine/modals';
@@ -27,16 +26,13 @@ import {
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useMoveToIntegration } from '@gitroom/frontend/components/launches/helpers/use.move.to.integration';
 import { useExistingData } from '@gitroom/frontend/components/launches/helpers/use.existing.data';
-import { newImage } from '@gitroom/frontend/components/launches/helpers/new.image.component';
 import { MultiMediaComponent } from '@gitroom/frontend/components/media/media.component';
 import { useExpend } from '@gitroom/frontend/components/launches/helpers/use.expend';
 import { TopTitle } from '@gitroom/frontend/components/launches/helpers/top.title.component';
 import { PickPlatforms } from '@gitroom/frontend/components/launches/helpers/pick.platform.component';
 import { ProvidersOptions } from '@gitroom/frontend/components/launches/providers.options';
-import { v4 as uuidv4 } from 'uuid';
-import useSWR, { useSWRConfig } from 'swr';
+import useSWR from 'swr';
 import { useToaster } from '@gitroom/react/toaster/toaster';
-import { postSelector } from '@gitroom/frontend/components/post-url-selector/post.url.selector';
 import { UpDownArrow } from '@gitroom/frontend/components/launches/up.down.arrow';
 import { DatePicker } from '@gitroom/frontend/components/launches/helpers/date.picker';
 import { arrayMoveImmutable } from 'array-move';
@@ -51,15 +47,16 @@ import { AddPostButton } from '@gitroom/frontend/components/launches/add.post.bu
 import { useStateCallback } from '@gitroom/react/helpers/use.state.callback';
 import { CopilotPopup } from '@copilotkit/react-ui';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
+import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 
 export const AddEditModal: FC<{
   date: dayjs.Dayjs;
   integrations: Integrations[];
   reopenModal: () => void;
+  mutate: () => void;
 }> = (props) => {
-  const { date, integrations, reopenModal } = props;
+  const { date, integrations, reopenModal, mutate } = props;
   const [dateState, setDateState] = useState(date);
-  const { mutate } = useSWRConfig();
 
   // hook to open a new modal
   const modal = useModals();
@@ -246,7 +243,7 @@ export const AddEditModal: FC<{
         await fetch(`/posts/${existingData.group}`, {
           method: 'DELETE',
         });
-        mutate('/posts');
+        mutate();
         modal.closeAll();
         return;
       }
@@ -322,9 +319,9 @@ export const AddEditModal: FC<{
         }),
       });
 
-      existingData.group = uuidv4();
+      existingData.group = makeId(10);
 
-      mutate('/posts');
+      mutate();
       toaster.show(
         !existingData.integration
           ? 'Added successfully'
