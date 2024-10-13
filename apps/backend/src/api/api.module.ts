@@ -14,7 +14,6 @@ import { SettingsController } from '@gitroom/backend/api/routes/settings.control
 import { PostsController } from '@gitroom/backend/api/routes/posts.controller';
 import { MediaController } from '@gitroom/backend/api/routes/media.controller';
 import { UploadModule } from '@gitroom/nestjs-libraries/upload/upload.module';
-import { ServeStaticModule } from '@nestjs/serve-static';
 import { CommentsController } from '@gitroom/backend/api/routes/comments.controller';
 import { BillingController } from '@gitroom/backend/api/routes/billing.controller';
 import { NotificationsController } from '@gitroom/backend/api/routes/notifications.controller';
@@ -46,18 +45,6 @@ const authenticatedController = [
 @Module({
   imports: [
     UploadModule,
-    ...(!!process.env.UPLOAD_DIRECTORY &&
-    !!process.env.NEXT_PUBLIC_UPLOAD_STATIC_DIRECTORY
-      ? [
-          ServeStaticModule.forRoot({
-            rootPath: process.env.UPLOAD_DIRECTORY,
-            serveRoot: '/' + process.env.NEXT_PUBLIC_UPLOAD_STATIC_DIRECTORY,
-            serveStaticOptions: {
-              index: false,
-            },
-          }),
-        ]
-      : []),
   ],
   controllers: [
     RootController,
