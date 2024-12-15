@@ -11,24 +11,26 @@ datasource db {
 }
 
 model Organization {
-  id           String             @id @default(uuid())
-  name         String
-  description  String?
-  users        UserOrganization[]
-  media        Media[]
-  paymentId    String?
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
-  github       GitHub[]
-  subscription Subscription?
-  Integration  Integration[]
-  post         Post[] @relation("organization")
-  submittedPost Post[] @relation("submittedForOrg")
-  Comments     Comments[]
-  notifications Notifications[]
+  id                String             @id @default(uuid())
+  name              String
+  description       String?
+  apiKey            String?
+  users             UserOrganization[]
+  media             Media[]
+  paymentId         String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  github            GitHub[]
+  subscription      Subscription?
+  Integration       Integration[]
+  post              Post[] @relation("organization")
+  submittedPost     Post[] @relation("submittedForOrg")
+  Comments          Comments[]
+  notifications     Notifications[]
   buyerOrganization MessagesGroup[]
-  usedCodes    UsedCodes[]
-  credits      Credits[]
+  usedCodes         UsedCodes[]
+  credits           Credits[]
+  plugs        Plugs[]
   customers    Customer[]
 }
 
@@ -280,6 +282,8 @@ model Integration {
   customInstanceDetails String?
   customerId            String?
   customer              Customer?       @relation(fields: [customerId], references: [id])
+  plugs                 Plugs[]
+  exisingPlugData       ExisingPlugData[]
 
   @@index([updatedAt])
   @@index([deletedAt])
@@ -453,6 +457,30 @@ model Messages {
   @@index([groupId])
   @@index([createdAt])
   @@index([deletedAt])
+}
+
+model Plugs {
+  id                String   @id @default(uuid())
+  organizationId    String
+  organization      Organization @relation(fields: [organizationId], references: [id])
+  plugFunction      String
+  data              String
+  integrationId     String
+  integration       Integration @relation(fields: [integrationId], references: [id])
+  activated         Boolean @default(true)
+
+  @@unique([plugFunction, integrationId])
+  @@index([organizationId])
+}
+
+model ExisingPlugData {
+  id                String   @id @default(uuid())
+  integrationId     String
+  integration       Integration @relation(fields: [integrationId], references: [id])
+  methodName        String
+  value             String
+
+  @@unique([integrationId, methodName, value])
 }
 
 enum OrderStatus {
