@@ -26,6 +26,7 @@ import { GeneratorDto } from '@gitroom/nestjs-libraries/dtos/generator/generator
 import { CreateGeneratedPostsDto } from '@gitroom/nestjs-libraries/dtos/generator/create.generated.posts.dto';
 import { AgentGraphService } from '@gitroom/nestjs-libraries/agent/agent.graph.service';
 import { Response } from 'express';
+import { GetUserFromRequest } from '@gitroom/nestjs-libraries/user/user.from.request';
 
 @ApiTags('Posts')
 @Controller('/posts')
@@ -43,6 +44,16 @@ export class PostsController {
     @Param('id') id: string
   ) {
     return this._messagesService.getMarketplaceAvailableOffers(org.id, id);
+  }
+
+  @Post('/:id/comments')
+  async createComment(
+    @GetOrgFromRequest() org: Organization,
+    @GetUserFromRequest() user: User,
+    @Param('id') id: string,
+    @Body() body: { comment: string }
+  ) {
+    return this._postsService.createComment(org.id, user.id, id, body.comment);
   }
 
   @Get('/')
@@ -63,6 +74,13 @@ export class PostsController {
       posts,
       // comments,
     };
+  }
+
+  @Get('/find-slot')
+  async findSlot(
+    @GetOrgFromRequest() org: Organization,
+  ) {
+    return {date: await this._postsService.findFreeDateTime(org.id)}
   }
 
   @Get('/predict-trending')

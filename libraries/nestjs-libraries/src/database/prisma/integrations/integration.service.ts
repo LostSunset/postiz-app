@@ -41,7 +41,27 @@ export class IntegrationService {
     return this._integrationRepository.setTimes(orgId, integrationId, times);
   }
 
+  updateProviderSettings(
+    org: string,
+    id: string,
+    additionalSettings: string
+  ) {
+    return this._integrationRepository.updateProviderSettings(
+      org,
+      id,
+      additionalSettings
+    );
+  }
+
   async createOrUpdateIntegration(
+    additionalSettings: {
+      title: string;
+      description: string;
+      type: 'checkbox' | 'text' | 'textarea';
+      value: any;
+      regex?: string;
+    }[] | undefined,
+    oneTimeToken: boolean,
     org: string,
     name: string,
     picture: string | undefined,
@@ -61,6 +81,8 @@ export class IntegrationService {
       ? await this.storage.uploadSimple(picture)
       : undefined;
     return this._integrationRepository.createOrUpdateIntegration(
+      additionalSettings,
+      oneTimeToken,
       org,
       name,
       uploadedPicture,
@@ -164,6 +186,8 @@ export class IntegrationService {
       const { refreshToken, accessToken, expiresIn } = data;
 
       await this.createOrUpdateIntegration(
+        undefined,
+        !!provider.oneTimeToken,
         integration.organizationId,
         integration.name,
         undefined,
@@ -331,7 +355,7 @@ export class IntegrationService {
       dayjs(getIntegration?.tokenExpiration).isBefore(dayjs()) ||
       forceRefresh
     ) {
-      const { accessToken, expiresIn, refreshToken } =
+      const { accessToken, expiresIn, refreshToken, additionalSettings } =
         await new Promise<AuthTokenDetails>((res) => {
           return integrationProvider
             .refreshToken(getIntegration.refreshToken!)
@@ -344,12 +368,15 @@ export class IntegrationService {
                 name: '',
                 picture: '',
                 username: '',
+                additionalSettings: undefined,
               });
             });
         });
 
       if (accessToken) {
         await this.createOrUpdateIntegration(
+          additionalSettings,
+          !!integrationProvider.oneTimeToken,
           getIntegration.organizationId,
           getIntegration.name,
           getIntegration.picture!,
@@ -425,10 +452,11 @@ export class IntegrationService {
     delay: number;
     information: any;
   }) {
-    const originalIntegration = await this._integrationRepository.getIntegrationById(
-      data.orgId,
-      data.originalIntegration
-    );
+    const originalIntegration =
+      await this._integrationRepository.getIntegrationById(
+        data.orgId,
+        data.originalIntegration
+      );
 
     const getIntegration = await this._integrationRepository.getIntegrationById(
       data.orgId,

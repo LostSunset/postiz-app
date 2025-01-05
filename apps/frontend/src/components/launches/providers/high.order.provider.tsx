@@ -1,14 +1,7 @@
 'use client';
 
 import React, {
-  FC,
-  Fragment,
-  ReactNode,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  ClipboardEvent,
+  FC, Fragment, ReactNode, useCallback, useEffect, useMemo, useState, ClipboardEvent, memo
 } from 'react';
 import { Button } from '@gitroom/react/form/button';
 import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
@@ -87,9 +80,9 @@ export const withProvider = function <T extends object>(
     value: Array<Array<{ path: string }>>,
     settings: T
   ) => Promise<string | true>,
-  maximumCharacters?: number
+  maximumCharacters?: number | ((settings: any) => number)
 ) {
-  return (props: {
+  return memo((props: {
     identifier: string;
     id: string;
     value: Array<{
@@ -155,7 +148,11 @@ export const withProvider = function <T extends object>(
       editInPlace ? InPlaceValue : props.value,
       dto,
       checkValidity,
-      maximumCharacters
+      !maximumCharacters
+        ? undefined
+        : typeof maximumCharacters === 'number'
+        ? maximumCharacters
+        : maximumCharacters(JSON.parse(integration?.additionalSettings || '[]'))
     );
 
     // change editor value
@@ -348,10 +345,12 @@ export const withProvider = function <T extends object>(
     );
 
     const getInternalPlugs = useCallback(async () => {
-      return (await fetch(`/integrations/${props.identifier}/internal-plugs`)).json();
+      return (
+        await fetch(`/integrations/${props.identifier}/internal-plugs`)
+      ).json();
     }, [props.identifier]);
 
-    const {data} = useSWR(`internal-${props.identifier}`, getInternalPlugs);
+    const { data } = useSWR(`internal-${props.identifier}`, getInternalPlugs);
 
     // this is a trick to prevent the data from being deleted, yet we don't render the elements
     if (!props.show) {
@@ -423,7 +422,8 @@ export const withProvider = function <T extends object>(
                       <div>
                         <div className="flex gap-[4px]">
                           <div className="flex-1 text-textColor editor">
-                            {(integration?.identifier === 'linkedin' || integration?.identifier === 'linkedin-page') && (
+                            {(integration?.identifier === 'linkedin' ||
+                              integration?.identifier === 'linkedin-page') && (
                               <Button
                                 className="mb-[5px]"
                                 onClick={tagPersonOrCompany(
@@ -467,6 +467,7 @@ export const withProvider = function <T extends object>(
                             <div className="flex">
                               <div className="flex-1">
                                 <MultiMediaComponent
+                                  text={val.content}
                                   label="Attachments"
                                   description=""
                                   name="image"
@@ -526,8 +527,8 @@ export const withProvider = function <T extends object>(
           {(showTab === 0 || showTab === 2) && (
             <div className={clsx('mt-[20px]', showTab !== 2 && 'hidden')}>
               <Component values={editInPlace ? InPlaceValue : props.value} />
-              {data?.internalPlugs?.length && (
-                <InternalChannels plugs={data?.internalPlugs}  />
+              {!!data?.internalPlugs?.length && (
+                <InternalChannels plugs={data?.internalPlugs} />
               )}
             </div>
           )}
@@ -546,11 +547,31 @@ export const withProvider = function <T extends object>(
                   .join('').length ? (
                   CustomPreviewComponent ? (
                     <CustomPreviewComponent
-                      maximumCharacters={maximumCharacters}
+                      maximumCharacters={
+                        !maximumCharacters
+                          ? undefined
+                          : typeof maximumCharacters === 'number'
+                          ? maximumCharacters
+                          : maximumCharacters(
+                              JSON.parse(
+                                integration?.additionalSettings || '[]'
+                              )
+                            )
+                      }
                     />
                   ) : (
                     <GeneralPreviewComponent
-                      maximumCharacters={maximumCharacters}
+                      maximumCharacters={
+                        !maximumCharacters
+                          ? undefined
+                          : typeof maximumCharacters === 'number'
+                          ? maximumCharacters
+                          : maximumCharacters(
+                              JSON.parse(
+                                integration?.additionalSettings || '[]'
+                              )
+                            )
+                      }
                     />
                   )
                 ) : (
@@ -562,5 +583,5 @@ export const withProvider = function <T extends object>(
         </div>
       </FormProvider>
     );
-  };
+  });
 };

@@ -11,6 +11,7 @@ import React, {
   useRef,
   ClipboardEvent,
   useState,
+  memo,
 } from 'react';
 import dayjs from 'dayjs';
 import { Integrations } from '@gitroom/frontend/components/launches/calendar.context';
@@ -59,6 +60,7 @@ import { useClickOutside } from '@gitroom/frontend/components/layout/click.outsi
 import { useUppyUploader } from '@gitroom/frontend/components/media/new.uploader';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
 import { DropFiles } from '@gitroom/frontend/components/layout/drop.files';
+import { SelectCustomer } from '@gitroom/frontend/components/launches/select.customer';
 
 function countCharacters(text: string, type: string): number {
   if (type !== 'x') {
@@ -79,7 +81,7 @@ export const AddEditModal: FC<{
     id?: string;
     image?: Array<{ id: string; path: string }>;
   }>;
-}> = (props) => {
+}> = memo((props) => {
   const { date, integrations: ints, reopenModal, mutate, onlyValues } = props;
   const [customer, setCustomer] = useState('');
   const [loading, setLoading] = useState(false);
@@ -102,10 +104,6 @@ export const AddEditModal: FC<{
 
     return list;
   }, [customer, ints]);
-
-  const totalCustomers = useMemo(() => {
-    return uniqBy(ints, (i) => i?.customer?.id).length;
-  }, [ints]);
 
   const [dateState, setDateState] = useState(date);
 
@@ -311,50 +309,52 @@ export const AddEditModal: FC<{
         maximumCharacters: values[v].maximumCharacters,
       }));
 
-      for (const key of allKeys) {
-        if (key.checkValidity) {
-          const check = await key.checkValidity(
-            key?.value.map((p: any) => p.image || []),
-            key.settings
-          );
-          if (typeof check === 'string') {
-            toaster.show(check, 'warning');
-            return;
-          }
-        }
-
-        if (
-          key.value.some((p) => {
-            return (
-              countCharacters(p.content, key?.integration?.identifier || '') >
-              (key.maximumCharacters || 1000000)
+      if (type !== 'draft') {
+        for (const key of allKeys) {
+          if (key.checkValidity) {
+            const check = await key.checkValidity(
+              key?.value.map((p: any) => p.image || []),
+              key.settings
             );
-          })
-        ) {
+            if (typeof check === 'string') {
+              toaster.show(check, 'warning');
+              return;
+            }
+          }
+
           if (
-            !(await deleteDialog(
-              `${key?.integration?.name} post is too long, it will be cropped, do you want to continue?`,
-              'Yes, continue'
-            ))
+            key.value.some((p) => {
+              return (
+                countCharacters(p.content, key?.integration?.identifier || '') >
+                (key.maximumCharacters || 1000000)
+              );
+            })
           ) {
-            await key.trigger();
-            moveToIntegration({
-              identifier: key?.integration?.id!,
-              toPreview: true,
-            });
+            if (
+              !(await deleteDialog(
+                `${key?.integration?.name} post is too long, it will be cropped, do you want to continue?`,
+                'Yes, continue'
+              ))
+            ) {
+              await key.trigger();
+              moveToIntegration({
+                identifier: key?.integration?.id!,
+                toPreview: true,
+              });
+              return;
+            }
+          }
+
+          if (key.value.some((p) => !p.content || p.content.length < 6)) {
+            setShowError(true);
             return;
           }
-        }
 
-        if (key.value.some((p) => !p.content || p.content.length < 6)) {
-          setShowError(true);
-          return;
-        }
-
-        if (!key.valid) {
-          await key.trigger();
-          moveToIntegration({ identifier: key?.integration?.id! });
-          return;
+          if (!key.valid) {
+            await key.trigger();
+            moveToIntegration({ identifier: key?.integration?.id! });
+            return;
+          }
         }
       }
 
@@ -526,28 +526,13 @@ export const AddEditModal: FC<{
                   information={data}
                   onChange={setPostFor}
                 />
-                {totalCustomers > 1 && (
-                  <Select
-                    hideErrors={true}
-                    label=""
-                    name="customer"
-                    value={customer}
-                    onChange={(e) => {
-                      setCustomer(e.target.value);
-                      setSelectedIntegrations([]);
-                    }}
-                    disableForm={true}
-                  >
-                    <option value="">Selected Customer</option>
-                    {uniqBy(ints, (u) => u?.customer?.name)
-                      .filter((f) => f.customer?.name)
-                      .map((p) => (
-                        <option key={p.customer?.id} value={p.customer?.id}>
-                          Customer: {p.customer?.name}
-                        </option>
-                      ))}
-                  </Select>
-                )}
+                <SelectCustomer
+                  integrations={ints}
+                  onChange={(val) => {
+                    setCustomer(val);
+                    setSelectedIntegrations([]);
+                  }}
+                />
                 <DatePicker onChange={setDateState} date={dateState} />
                 {!selectedIntegrations.length && (
                   <svg
@@ -653,6 +638,7 @@ export const AddEditModal: FC<{
                           <div className="flex">
                             <div className="flex-1">
                               <MultiMediaComponent
+                                text={p.content}
                                 label="Attachments"
                                 description=""
                                 value={p.image}
@@ -753,6 +739,9 @@ export const AddEditModal: FC<{
                           ? 'Submit for order'
                           : !existingData.integration
                           ? 'Add to calendar'
+                          : // @ts-ignore
+                          existingData?.posts?.[0]?.state === 'DRAFT'
+                          ? 'Schedule'
                           : 'Update'}
                       </div>
                       {!postFor && (
@@ -828,4 +817,4 @@ export const AddEditModal: FC<{
       </div>
     </>
   );
-};
+});

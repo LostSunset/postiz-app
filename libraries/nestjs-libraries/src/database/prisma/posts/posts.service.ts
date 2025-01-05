@@ -52,11 +52,15 @@ export class PostsService {
       isFirst
     );
 
+    if (!post) {
+      return [];
+    }
+
     return [
       post!,
       ...(post?.childrenPost?.length
         ? await this.getPostsRecursively(
-            post.childrenPost[0].id,
+            post?.childrenPost?.[0]?.id,
             false,
             orgId,
             false
@@ -217,7 +221,7 @@ export class PostsService {
     }
 
     if (dayjs(integration?.tokenExpiration).isBefore(dayjs()) || forceRefresh) {
-      const { accessToken, expiresIn, refreshToken } =
+      const { accessToken, expiresIn, refreshToken, additionalSettings } =
         await new Promise<AuthTokenDetails>((res) => {
           getIntegration
             .refreshToken(integration.refreshToken!)
@@ -231,6 +235,7 @@ export class PostsService {
                 name: '',
                 username: '',
                 picture: '',
+                additionalSettings: undefined,
               })
             );
         });
@@ -249,6 +254,8 @@ export class PostsService {
       }
 
       await this._integrationService.createOrUpdateIntegration(
+        additionalSettings,
+        !!getIntegration.oneTimeToken,
         integration.organizationId,
         integration.name,
         integration.picture!,
@@ -789,5 +796,13 @@ export class PostsService {
     }, null) as number;
 
     return date.clone().add(num, 'minutes').format('YYYY-MM-DDTHH:mm:00');
+  }
+
+  getComments(postId: string) {
+    return this._postRepository.getComments(postId);
+  }
+
+  createComment(orgId: string, userId: string, postId: string, comment: string) {
+    return this._postRepository.createComment(orgId, userId, postId, comment);
   }
 }

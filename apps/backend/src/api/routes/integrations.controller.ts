@@ -106,11 +106,24 @@ export class IntegrationsController {
           changeProfilePicture: !!findIntegration?.changeProfilePicture,
           changeNickName: !!findIntegration?.changeNickname,
           customer: p.customer,
+          additionalSettings: p.additionalSettings || '[]',
         };
       }),
     };
   }
 
+  @Post('/:id/settings')
+  async updateProviderSettings(
+    @GetOrgFromRequest() org: Organization,
+    @Param('id') id: string,
+    @Body('additionalSettings') body: string
+  ) {
+    if (typeof body !== 'string') {
+      throw new Error('Invalid body');
+    }
+
+    await this._integrationService.updateProviderSettings(org.id, id, body);
+  }
   @Post('/:id/nickname')
   async setNickname(
     @GetOrgFromRequest() org: Organization,
@@ -251,19 +264,22 @@ export class IntegrationsController {
           const load = await integrationProvider[body.name](
             getIntegration.token,
             body.data,
-            getIntegration.internalId
+            getIntegration.internalId,
+            getIntegration
           );
 
           return load;
         } catch (err) {
           if (err instanceof RefreshToken) {
-            const { accessToken, refreshToken, expiresIn } =
+            const { accessToken, refreshToken, expiresIn, additionalSettings } =
               await integrationProvider.refreshToken(
                 getIntegration.refreshToken
               );
 
             if (accessToken) {
               await this._integrationService.createOrUpdateIntegration(
+                additionalSettings,
+                !!integrationProvider.oneTimeToken,
                 getIntegration.organizationId,
                 getIntegration.name,
                 getIntegration.picture!,
@@ -345,6 +361,8 @@ export class IntegrationsController {
     }
 
     return this._integrationService.createOrUpdateIntegration(
+      undefined,
+      true,
       org.id,
       name,
       picture,
@@ -411,6 +429,7 @@ export class IntegrationsController {
       name,
       picture,
       username,
+      additionalSettings,
       // eslint-disable-next-line no-async-promise-executor
     } = await new Promise<AuthTokenDetails>(async (res) => {
       const auth = await integrationProvider.authenticate(
@@ -430,6 +449,7 @@ export class IntegrationsController {
           name: '',
           picture: '',
           username: '',
+          additionalSettings: [],
         });
       }
 
@@ -468,6 +488,8 @@ export class IntegrationsController {
       }
     }
     return this._integrationService.createOrUpdateIntegration(
+      additionalSettings,
+      !!integrationProvider.oneTimeToken,
       org.id,
       validName.trim(),
       picture,

@@ -15,6 +15,8 @@ import { PostPlug } from '@gitroom/helpers/decorators/post.plug';
 export class LinkedinProvider extends SocialAbstract implements SocialProvider {
   identifier = 'linkedin';
   name = 'LinkedIn';
+  oneTimeToken = true;
+
   isBetweenSteps = false;
   scopes = [
     'openid',
@@ -46,8 +48,6 @@ export class LinkedinProvider extends SocialAbstract implements SocialProvider {
         }),
       })
     ).json();
-
-    console.log('refreshToken', refreshToken);
 
     const { vanityName } = await (
       await this.fetch('https://api.linkedin.com/v2/me', {
