@@ -1,6 +1,6 @@
 import interClass from '@gitroom/react/helpers/inter.font';
 export const dynamic = 'force-dynamic';
-import './global.scss';
+import '../global.scss';
 import 'react-tooltip/dist/react-tooltip.css';
 import '@copilotkit/react-ui/styles.css';
 
@@ -28,7 +28,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
       </head>
-      <body className={clsx(chakra.className, 'text-primary !bg-primary')}>
+      <body className={clsx(chakra.className, 'dark text-primary !bg-primary')}>
         <VariableContextComponent
           storageProvider={
             process.env.STORAGE_PROVIDER! as 'local' | 'cloudflare'
