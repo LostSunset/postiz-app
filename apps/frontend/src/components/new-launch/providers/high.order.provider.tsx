@@ -27,14 +27,28 @@ class Empty {
   empty: string;
 }
 
-export const withProvider = function <T extends object>(
+export enum PostComment {
+  ALL,
+  POST,
+  COMMENT,
+}
+
+interface CharacterCondition {
+  format: 'no-pictures' | 'with-pictures';
+  type: 'post' | 'comment';
+  maximumCharacters: number;
+}
+
+export const withProvider = function <T extends object>(params: {
+  postComment: PostComment;
+  minimumCharacters: CharacterCondition[];
   SettingsComponent: FC<{
     values?: any;
-  }> | null,
+  }> | null;
   CustomPreviewComponent?: FC<{
     maximumCharacters?: number;
-  }>,
-  dto?: any,
+  }>;
+  dto?: any;
   checkValidity?: (
     value: Array<
       Array<{
@@ -43,9 +57,18 @@ export const withProvider = function <T extends object>(
     >,
     settings: T,
     additionalSettings: any
-  ) => Promise<string | true>,
-  maximumCharacters?: number | ((settings: any) => number)
-) {
+  ) => Promise<string | true>;
+  maximumCharacters?: number | ((settings: any) => number);
+}) {
+  const {
+    postComment,
+    SettingsComponent,
+    CustomPreviewComponent,
+    dto,
+    checkValidity,
+    maximumCharacters,
+  } = params;
+
   return forwardRef((props: { id: string }, ref) => {
     const t = useT();
     const fetch = useFetch();
@@ -63,12 +86,15 @@ export const withProvider = function <T extends object>(
       setTotalChars,
       justCurrent,
       allIntegrations,
+      setPostComment,
+      dummy,
     } = useLaunchStore(
       useShallow((state) => ({
         date: state.date,
         tab: state.tab,
         setTab: state.setTab,
         global: state.global,
+        dummy: state.dummy,
         internal: state.internal.find((p) => p.integration.id === props.id),
         integrations: state.selectedIntegrations,
         allIntegrations: state.integrations,
@@ -77,6 +103,7 @@ export const withProvider = function <T extends object>(
         isGlobal: state.current === 'global',
         setCurrent: state.setCurrent,
         setTotalChars: state.setTotalChars,
+        setPostComment: state.setPostComment,
         selectedIntegration: state.selectedIntegrations.find(
           (p) => p.integration.id === props.id
         ),
@@ -89,10 +116,12 @@ export const withProvider = function <T extends object>(
       }
 
       if (isGlobal) {
+        setPostComment(PostComment.ALL);
         setTotalChars(0);
       }
 
       if (current) {
+        setPostComment(postComment);
         setTotalChars(
           typeof maximumCharacters === 'number'
             ? maximumCharacters
@@ -217,7 +246,7 @@ export const withProvider = function <T extends object>(
                   {t('preview', 'Preview')}
                 </Button>
               </div>
-              {!!SettingsComponent && (
+              {(!!SettingsComponent || !!data?.internalPlugs?.length) && (
                 <div className="flex-1 flex">
                   <Button
                     onClick={() => setTab(1)}
@@ -234,7 +263,8 @@ export const withProvider = function <T extends object>(
               )}
             </div>
 
-            {(tab === 0 || !SettingsComponent) &&
+            {(tab === 0 ||
+              (!SettingsComponent && !data?.internalPlugs?.length)) &&
               !value?.[0]?.content?.length && (
                 <div>
                   {t(
@@ -243,7 +273,8 @@ export const withProvider = function <T extends object>(
                   )}
                 </div>
               )}
-            {(tab === 0 || !SettingsComponent) &&
+            {(tab === 0 ||
+              (!SettingsComponent && !data?.internalPlugs?.length)) &&
               !!value?.[0]?.content?.length &&
               (CustomPreviewComponent ? (
                 <CustomPreviewComponent
@@ -272,10 +303,10 @@ export const withProvider = function <T extends object>(
                   }
                 />
               ))}
-            {SettingsComponent && (
+            {(SettingsComponent || !!data?.internalPlugs?.length) && (
               <div className={tab === 1 ? '' : 'hidden'}>
                 <SettingsComponent />
-                {!!data?.internalPlugs?.length && (
+                {!!data?.internalPlugs?.length && !dummy && (
                   <InternalChannels plugs={data?.internalPlugs} />
                 )}
               </div>

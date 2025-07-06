@@ -38,7 +38,7 @@ export class PostsController {
     private _starsService: StarsService,
     private _messagesService: MessagesService,
     private _agentGraphService: AgentGraphService,
-    private _shortLinkService: ShortLinkService,
+    private _shortLinkService: ShortLinkService
   ) {}
 
   @Get('/:id/statistics')
@@ -111,6 +111,14 @@ export class PostsController {
     return { date: await this._postsService.findFreeDateTime(org.id) };
   }
 
+  @Get('/find-slot/:id')
+  async findSlotIntegration(
+    @GetOrgFromRequest() org: Organization,
+    @Param('id') id?: string
+  ) {
+    return { date: await this._postsService.findFreeDateTime(org.id, id) };
+  }
+
   @Get('/predict-trending')
   predictTrending() {
     return this._starsService.predictTrending();
@@ -131,11 +139,12 @@ export class PostsController {
 
   @Post('/')
   @CheckPolicies([AuthorizationActions.Create, Sections.POSTS_PER_MONTH])
-  createPost(
+  async createPost(
     @GetOrgFromRequest() org: Organization,
-    @Body() body: CreatePostDto
+    @Body() rawBody: any
   ) {
-    console.log(JSON.stringify(body, null, 2));
+    console.log(JSON.stringify(rawBody, null, 2));
+    const body = await this._postsService.mapTypeToPost(rawBody, org.id);
     return this._postsService.createPost(org.id, body);
   }
 
@@ -183,7 +192,7 @@ export class PostsController {
   @Post('/separate-posts')
   async separatePosts(
     @GetOrgFromRequest() org: Organization,
-    @Body() body: { content: string, len: number }
+    @Body() body: { content: string; len: number }
   ) {
     return this._postsService.separatePosts(body.content, body.len);
   }
