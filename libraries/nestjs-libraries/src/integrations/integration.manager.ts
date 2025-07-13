@@ -1,12 +1,14 @@
 import 'reflect-metadata';
 
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+} from '@nestjs/common';
 import { XProvider } from '@gitroom/nestjs-libraries/integrations/social/x.provider';
 import { SocialProvider } from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
 import { LinkedinProvider } from '@gitroom/nestjs-libraries/integrations/social/linkedin.provider';
 import { RedditProvider } from '@gitroom/nestjs-libraries/integrations/social/reddit.provider';
-import { DevToProvider } from '@gitroom/nestjs-libraries/integrations/article/dev.to.provider';
-import { HashnodeProvider } from '@gitroom/nestjs-libraries/integrations/article/hashnode.provider';
+import { DevToProvider } from '@gitroom/nestjs-libraries/integrations/social/dev.to.provider';
+import { HashnodeProvider } from '@gitroom/nestjs-libraries/integrations/social/hashnode.provider';
 import { MediumProvider } from '@gitroom/nestjs-libraries/integrations/article/medium.provider';
 import { ArticleProvider } from '@gitroom/nestjs-libraries/integrations/article/article.integrations.interface';
 import { FacebookProvider } from '@gitroom/nestjs-libraries/integrations/social/facebook.provider';
@@ -50,13 +52,13 @@ export const socialIntegrationList: SocialProvider[] = [
   new TelegramProvider(),
   new NostrProvider(),
   new VkProvider(),
+  new MediumProvider(),
+  new DevToProvider(),
+  new HashnodeProvider(),
   // new MastodonCustomProvider(),
 ];
 
-const articleIntegrationList = [
-  new DevToProvider(),
-  new HashnodeProvider(),
-  new MediumProvider(),
+const articleIntegrationList: ArticleProvider[] = [
 ];
 
 @Injectable()
@@ -89,7 +91,7 @@ export class IntegrationManager {
           plugs: (
             Reflect.getMetadata('custom:plug', p.constructor.prototype) || []
           )
-            .filter((f) => !f.disabled)
+            .filter((f: any) => !f.disabled)
             .map((p: any) => ({
               ...p,
               fields: p.fields.map((c: any) => ({
@@ -111,7 +113,7 @@ export class IntegrationManager {
             'custom:internal_plug',
             p.constructor.prototype
           ) || []
-        ).filter((f) => !f.disabled) || [],
+        ).filter((f: any) => !f.disabled) || [],
     };
   }
 
